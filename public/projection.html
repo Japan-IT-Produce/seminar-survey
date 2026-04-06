@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>セミナーアンケート - リアルタイム結果</title>
+  <meta name="description" content="セミナーアンケートのリアルタイム結果投影画面。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/projection.css">
+</head>
+<body>
+  <!-- Ambient Background Orbs -->
+  <div class="bg-orb bg-orb--1" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb--2" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb--3" aria-hidden="true"></div>
+
+  <!-- Waiting Screen -->
+  <section class="proj-waiting" id="waiting-screen" aria-label="待機画面 — QRコードをスキャンしてください">
+  </section>
+
+  <!-- Results Screen -->
+  <section class="proj-results hidden" id="results-screen" aria-label="リアルタイム集計結果" aria-live="polite">
+  </section>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/js/projection.js"></script>
+</body>
+</html>
