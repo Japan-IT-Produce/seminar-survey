@@ -23,10 +23,11 @@ const QUESTIONS = [
   { id: "q1", text: "プライベートを含め、使ったことのあるAIツールはどれですか？", type: "multiple",
     options: ["Microsoft Copilot", "ChatGPT", "Gemini", "Claude", "NotebookLM", "Grok", "その他"] },
   { id: "q2", text: "仕事で生成AIをどのくらいの頻度で使っていますか？", type: "single",
-    options: ["ほとんど使っていない", "月に数回程度", "週に数回程度", "ほぼ毎日使っている", "業務に欠かせない程度に使っている"] },
+    options: ["ほとんど使っていない", "月に数日程度", "週に1日程度", "週に3日程度", "ほぼ毎日使っている"] },
   { id: "q3", text: "仕事で生成AIをどの業務に使ってみたいですか？", type: "multiple",
     options: ["文章作成・資料作成", "情報収集・要約", "企画・アイデア出し", "会議メモ・議事録整理",
-              { value: "まだイメージが湧かない", exclusive: true }] },
+              { value: "まだイメージが湧かない", exclusive: true },
+              { value: "その他（自由入力）", withText: true, textMaxLength: 200 }] },
   { id: "q4", text: "生成AIを使うとき、どこでつまずくことが多いですか？", type: "multiple",
     options: ["何に使えばよいか分からない", "指示文の書き方が分からない", "回答が正しいか判断できない", "情報漏えいや著作権が不安",
               { value: "特に困っていない", exclusive: true }] },
@@ -38,6 +39,8 @@ const QUESTIONS = [
 const optValues = (q) => q.type === 'text' ? [] : q.options.map(o => typeof o === 'string' ? o : o.value);
 const exclusiveValues = (q) => q.type === 'text' ? []
   : q.options.filter(o => typeof o === 'object' && o.exclusive).map(o => o.value);
+const withTextOptions = (q) => q.type === 'text' ? []
+  : q.options.filter(o => typeof o === 'object' && o.withText);
 
 // --- Session Store ---
 const sessions = new Map();
@@ -52,6 +55,9 @@ function computeResults(session) {
       results[q.id] = {};
       for (const opt of optValues(q)) {
         results[q.id][opt] = { count: 0, percentage: 0 };
+      }
+      if (withTextOptions(q).length > 0) {
+        results[q.id].__other_texts__ = [];
       }
     }
   }
@@ -68,6 +74,19 @@ function computeResults(session) {
       } else if (q.type === 'multiple' && Array.isArray(answer)) {
         for (const a of answer) {
           if (results[q.id][a]) results[q.id][a].count++;
+        }
+        // Capture withText sub-answer when the option was selected
+        for (const wt of withTextOptions(q)) {
+          if (answer.includes(wt.value)) {
+            const otherText = response.answers[`${q.id}_other_text`];
+            if (typeof otherText === 'string' && otherText.trim()) {
+              results[q.id].__other_texts__.push({
+                option: wt.value,
+                text: otherText,
+                submittedAt: response.submittedAt
+              });
+            }
+          }
         }
       } else if (typeof answer === 'string') {
         if (results[q.id][answer]) results[q.id][answer].count++;
@@ -263,6 +282,24 @@ app.post('/api/sessions/:id/responses', (req, res) => {
           }
         }
         normalized[q.id] = answer;
+
+        // Sub-text for "withText" options (e.g. "その他（自由入力）") — optional
+        const wts = withTextOptions(q);
+        for (const wt of wts) {
+          const subKey = `${q.id}_other_text`;
+          const sub = answers[subKey];
+          if (answer.includes(wt.value) && sub !== undefined && sub !== null && sub !== '') {
+            if (typeof sub !== 'string') {
+              return res.status(400).json({ error: `質問 ${q.id} の自由入力の形式が無効です` });
+            }
+            const trimmed = sub.trim();
+            const max = wt.textMaxLength || 200;
+            if (trimmed.length > max) {
+              return res.status(400).json({ error: `質問 ${q.id} の自由入力は${max}文字以内で入力してください` });
+            }
+            normalized[subKey] = trimmed;
+          }
+        }
       }
     }
 

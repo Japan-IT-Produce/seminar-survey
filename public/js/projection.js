@@ -304,10 +304,15 @@
             y: {
               grid: { display: false },
               ticks: {
-                color: 'rgba(255, 255, 255, 0.85)',
+                color: 'rgba(255, 255, 255, 0.88)',
+                autoSkip: false,
                 font: {
                   family: 'Noto Sans JP',
-                  size: 13
+                  size: 12
+                },
+                callback: function (value) {
+                  const label = this.getLabelForValue(value);
+                  return label.length > 14 ? label.slice(0, 13) + '…' : label;
                 }
               }
             }

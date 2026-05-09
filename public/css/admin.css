@@ -474,6 +474,22 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* "Other (free text)" sub-section inside a chart card (e.g. Q3 その他) */
+.other-texts-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--color-border-light);
+}
+
+.other-texts__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+  text-transform: none;
+}
+
 /* ===========================
    Responsive
    =========================== */

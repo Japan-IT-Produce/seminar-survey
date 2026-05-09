@@ -12,6 +12,8 @@
 
   // Helpers (mirror server)
   const optValues = (q) => q.type === 'text' ? [] : q.options.map(o => typeof o === 'string' ? o : o.value);
+  const withTextOptions = (q) => q.type === 'text' ? []
+    : q.options.filter(o => typeof o === 'object' && o.withText);
 
   // HTML escape for free-text rendering
   const escapeHtml = (s) => String(s)
@@ -321,6 +323,26 @@
           canvasWrapper.appendChild(canvas);
           card.appendChild(empty);
           card.appendChild(canvasWrapper);
+
+          // "Other (free text)" sub-list section if any withText option exists
+          if (withTextOptions(q).length > 0) {
+            const otherSection = document.createElement('div');
+            otherSection.className = 'other-texts-section';
+            otherSection.id = `other-texts-section-${q.id}`;
+            otherSection.style.display = 'none';
+
+            const otherTitle = document.createElement('div');
+            otherTitle.className = 'other-texts__title';
+            otherTitle.textContent = '「その他」自由入力';
+
+            const otherList = document.createElement('ul');
+            otherList.className = 'text-answers';
+            otherList.id = `other-texts-list-${q.id}`;
+
+            otherSection.appendChild(otherTitle);
+            otherSection.appendChild(otherList);
+            card.appendChild(otherSection);
+          }
         }
 
         content.appendChild(card);
@@ -434,7 +456,33 @@
         emptyEl.style.display = hasData ? 'none' : 'block';
         wrapperEl.style.display = hasData ? 'block' : 'none';
       }
+
+      // Render "other" free-text sub-list if applicable
+      if (withTextOptions(q).length > 0) {
+        renderOtherTexts(q, results[q.id]?.__other_texts__ || []);
+      }
     });
+  }
+
+  function renderOtherTexts(q, entries) {
+    const section = document.getElementById(`other-texts-section-${q.id}`);
+    const list = document.getElementById(`other-texts-list-${q.id}`);
+    if (!section || !list) return;
+
+    if (entries.length === 0) {
+      section.style.display = 'none';
+      list.innerHTML = '';
+      return;
+    }
+
+    section.style.display = 'block';
+
+    const sorted = entries.slice().sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+    const capped = sorted.slice(0, 100);
+    list.innerHTML = capped.map(e => {
+      const time = e.submittedAt ? new Date(e.submittedAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
+      return `<li class="text-answer"><div class="text-answer__body">${escapeHtml(e.text)}</div><div class="text-answer__time">${time}</div></li>`;
+    }).join('');
   }
 
   function renderTextAnswers(q, result) {
@@ -484,6 +532,12 @@
       if (!chart) return;
       chart.data.datasets[0].data = new Array(optValues(q).length).fill(0);
       chart.update();
+
+      // Clear other-texts list if applicable
+      const otherSection = document.getElementById(`other-texts-section-${q.id}`);
+      const otherList = document.getElementById(`other-texts-list-${q.id}`);
+      if (otherSection) otherSection.style.display = 'none';
+      if (otherList) otherList.innerHTML = '';
 
       const emptyEl = document.getElementById(`chart-empty-${q.id}`);
       const wrapperEl = document.getElementById(`chart-wrapper-${q.id}`);

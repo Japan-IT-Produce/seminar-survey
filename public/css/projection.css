@@ -340,15 +340,9 @@ body::before {
   min-height: 0;
 }
 
-/* Bottom row centering when only 2 items present */
-.proj-grid__item:nth-child(4) {
-  grid-column: 1 / 2;
-  margin-left: 50%;
-}
-
+/* Bottom row: Q4 (col 1) + Q5 free-text card (cols 2-3 wide for legibility) */
 .proj-grid__item:nth-child(5) {
   grid-column: 2 / 4;
-  margin-right: 50%;
 }
 
 /* ===========================

@@ -12,6 +12,8 @@
   const optValues = (q) => q.type === 'text' ? [] : q.options.map(o => typeof o === 'string' ? o : o.value);
   const exclusiveValues = (q) => q.type === 'text' ? []
     : q.options.filter(o => typeof o === 'object' && o.exclusive).map(o => o.value);
+  const withTextOptions = (q) => q.type === 'text' ? []
+    : q.options.filter(o => typeof o === 'object' && o.withText);
 
   // --- Init ---
   async function init() {
@@ -252,6 +254,34 @@
         });
 
         card.appendChild(optList);
+
+        // Render hidden text input for any withText option (e.g. その他（自由入力）)
+        const wts = withTextOptions(q);
+        if (wts.length > 0 && q.type === 'multiple') {
+          const subKey = `${q.id}_other_text`;
+          wts.forEach((wt) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'other-text-wrap';
+            wrap.id = `other-text-wrap-${q.id}-${wt.value}`;
+            wrap.style.display = 'none';
+            wrap.dataset.qid = q.id;
+            wrap.dataset.value = wt.value;
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'other-text-input';
+            input.id = `other-text-${q.id}`;
+            input.placeholder = `「${wt.value}」の内容（任意）`;
+            if (wt.textMaxLength) input.maxLength = wt.textMaxLength;
+
+            input.addEventListener('input', () => {
+              answers[subKey] = input.value;
+            });
+
+            wrap.appendChild(input);
+            card.appendChild(wrap);
+          });
+        }
       }
 
       main.appendChild(card);
@@ -319,6 +349,31 @@
       if (answers[question.id].length === 0) {
         delete answers[question.id];
       }
+    }
+
+    // Toggle visibility of any withText sub-input for this question
+    syncOtherTextVisibility(question);
+  }
+
+  // Show/hide other-text input wrap based on whether its option is currently selected
+  function syncOtherTextVisibility(question) {
+    const wts = withTextOptions(question);
+    if (wts.length === 0) return;
+    const selected = answers[question.id] || [];
+    const subKey = `${question.id}_other_text`;
+    let anyShown = false;
+    wts.forEach((wt) => {
+      const wrap = document.getElementById(`other-text-wrap-${question.id}-${wt.value}`);
+      if (!wrap) return;
+      const isSelected = Array.isArray(selected) && selected.includes(wt.value);
+      wrap.style.display = isSelected ? 'block' : 'none';
+      if (isSelected) anyShown = true;
+    });
+    if (!anyShown) {
+      // Clear text and remove from payload when option is deselected
+      const input = document.getElementById(`other-text-${question.id}`);
+      if (input) input.value = '';
+      delete answers[subKey];
     }
   }
 
