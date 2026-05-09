@@ -12,7 +12,14 @@
   let currentCount = 0;
   let displayedCount = 0;
 
-  const CHART_COLORS = ['#00D4AA', '#6C5CE7', '#3B82F6', '#F59E0B', '#EF4444', '#EC4899'];
+  const CHART_COLORS = ['#00D4AA', '#6C5CE7', '#3B82F6', '#F59E0B', '#EF4444', '#EC4899', '#22D3EE'];
+
+  // Helpers (mirror server)
+  const optValues = (q) => q.type === 'text' ? [] : q.options.map(o => typeof o === 'string' ? o : o.value);
+
+  const escapeHtml = (s) => String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
   // --- Init ---
   async function init() {
@@ -175,6 +182,7 @@
 
         const card = document.createElement('div');
         card.className = 'glass-card proj-chart-card';
+        if (q.type === 'text') card.classList.add('proj-text-card');
 
         const num = document.createElement('div');
         num.className = 'proj-chart-card__number';
@@ -184,16 +192,30 @@
         titleEl.className = 'proj-chart-card__title';
         titleEl.textContent = q.text;
 
-        const canvasWrap = document.createElement('div');
-        canvasWrap.className = 'proj-chart-card__canvas-wrapper';
-
-        const canvas = document.createElement('canvas');
-        canvas.id = `proj-chart-${q.id}`;
-
-        canvasWrap.appendChild(canvas);
         card.appendChild(num);
         card.appendChild(titleEl);
-        card.appendChild(canvasWrap);
+
+        if (q.type === 'text') {
+          const list = document.createElement('ul');
+          list.className = 'proj-text-card__list';
+          list.id = `proj-text-list-${q.id}`;
+
+          const empty = document.createElement('div');
+          empty.className = 'proj-text-card__empty';
+          empty.id = `proj-text-empty-${q.id}`;
+          empty.textContent = '回答をお待ちしています…';
+
+          card.appendChild(empty);
+          card.appendChild(list);
+        } else {
+          const canvasWrap = document.createElement('div');
+          canvasWrap.className = 'proj-chart-card__canvas-wrapper';
+          const canvas = document.createElement('canvas');
+          canvas.id = `proj-chart-${q.id}`;
+          canvasWrap.appendChild(canvas);
+          card.appendChild(canvasWrap);
+        }
+
         item.appendChild(card);
         grid.appendChild(item);
       });
@@ -237,17 +259,19 @@
     };
 
     sessionData.questions.forEach((q) => {
+      if (q.type === 'text') return;
       const ctx = document.getElementById(`proj-chart-${q.id}`);
       if (!ctx) return;
 
-      const colors = q.options.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
+      const opts = optValues(q);
+      const colors = opts.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
 
       charts[q.id] = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: q.options,
+          labels: opts,
           datasets: [{
-            data: new Array(q.options.length).fill(0),
+            data: new Array(opts.length).fill(0),
             backgroundColor: colors,
             borderRadius: 8,
             barThickness: 28
@@ -298,19 +322,55 @@
     if (!results || !sessionData.questions) return;
 
     sessionData.questions.forEach((q) => {
+      if (q.type === 'text') {
+        renderProjText(q, results[q.id]);
+        return;
+      }
       const chart = charts[q.id];
       if (!chart) return;
-      chart.data.datasets[0].data = q.options.map(opt => results[q.id]?.[opt]?.count || 0);
+      chart.data.datasets[0].data = optValues(q).map(opt => results[q.id]?.[opt]?.count || 0);
       chart.update();
     });
+  }
+
+  function renderProjText(q, result) {
+    const listEl = document.getElementById(`proj-text-list-${q.id}`);
+    const emptyEl = document.getElementById(`proj-text-empty-${q.id}`);
+    if (!listEl || !emptyEl) return;
+
+    const entries = (result && result.entries) || [];
+
+    if (entries.length === 0) {
+      emptyEl.style.display = 'block';
+      listEl.style.display = 'none';
+      listEl.innerHTML = '';
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+    listEl.style.display = 'block';
+
+    // Newest first, cap at 8 for projection legibility
+    const sorted = entries.slice().sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+    const capped = sorted.slice(0, 8);
+    listEl.innerHTML = capped.map(e =>
+      `<li class="proj-text-card__item">${escapeHtml(e.text)}</li>`
+    ).join('');
   }
 
   function clearCharts() {
     if (!sessionData.questions) return;
     sessionData.questions.forEach((q) => {
+      if (q.type === 'text') {
+        const listEl = document.getElementById(`proj-text-list-${q.id}`);
+        const emptyEl = document.getElementById(`proj-text-empty-${q.id}`);
+        if (listEl) { listEl.innerHTML = ''; listEl.style.display = 'none'; }
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+      }
       const chart = charts[q.id];
       if (!chart) return;
-      chart.data.datasets[0].data = new Array(q.options.length).fill(0);
+      chart.data.datasets[0].data = new Array(optValues(q).length).fill(0);
       chart.update();
     });
   }

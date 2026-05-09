@@ -20,12 +20,24 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // --- Questions ---
 const QUESTIONS = [
-  { id: "q1", text: "貴社で現在使っている生成AIを選んでください", type: "multiple", options: ["Copilot", "Gemini", "ChatGPT", "Claude", "その他", "使っていない"] },
-  { id: "q2", text: "貴社で生成AIをどのように使っていますか", type: "single", options: ["全社で使っている", "一部の部署で使っている", "個人レベルで使っている", "試しに使ったことはある", "使っていない"] },
-  { id: "q3", text: "貴社のロボット活用状況に最も近いものを選んでください", type: "single", options: ["自社でロボットシステムを構築している", "外部に依頼してロボットシステムを導入している", "単体のロボットを使っている", "導入を検討している", "使っていない"] },
-  { id: "q4", text: "貴社で使っているロボットの種類を選んでください", type: "multiple", options: ["協働ロボット", "産業用ロボット", "搬送ロボット（AGV・AMRなど）", "検査・自動化装置", "使っていない", "分からない"] },
-  { id: "q5", text: "貴社で今後進めたいものを選んでください", type: "single", options: ["生成AIの活用", "ロボット導入", "AIとロボットの両方", "まずは情報共有やデータ整理", "まだ決まっていない"] }
+  { id: "q1", text: "プライベートを含め、使ったことのあるAIツールはどれですか？", type: "multiple",
+    options: ["Microsoft Copilot", "ChatGPT", "Gemini", "Claude", "NotebookLM", "Grok", "その他"] },
+  { id: "q2", text: "仕事で生成AIをどのくらいの頻度で使っていますか？", type: "single",
+    options: ["ほとんど使っていない", "月に数回程度", "週に数回程度", "ほぼ毎日使っている", "業務に欠かせない程度に使っている"] },
+  { id: "q3", text: "仕事で生成AIをどの業務に使ってみたいですか？", type: "multiple",
+    options: ["文章作成・資料作成", "情報収集・要約", "企画・アイデア出し", "会議メモ・議事録整理",
+              { value: "まだイメージが湧かない", exclusive: true }] },
+  { id: "q4", text: "生成AIを使うとき、どこでつまずくことが多いですか？", type: "multiple",
+    options: ["何に使えばよいか分からない", "指示文の書き方が分からない", "回答が正しいか判断できない", "情報漏えいや著作権が不安",
+              { value: "特に困っていない", exclusive: true }] },
+  { id: "q5", text: "今日の研修で知りたいことや、AIについて気になっていることがあれば教えてください。",
+    type: "text", required: false, placeholder: "自由にご記入ください（任意）", maxLength: 500 }
 ];
+
+// Helpers to extract option values and exclusive values from a question
+const optValues = (q) => q.type === 'text' ? [] : q.options.map(o => typeof o === 'string' ? o : o.value);
+const exclusiveValues = (q) => q.type === 'text' ? []
+  : q.options.filter(o => typeof o === 'object' && o.exclusive).map(o => o.value);
 
 // --- Session Store ---
 const sessions = new Map();
@@ -34,9 +46,13 @@ const sessions = new Map();
 function computeResults(session) {
   const results = {};
   for (const q of QUESTIONS) {
-    results[q.id] = {};
-    for (const opt of q.options) {
-      results[q.id][opt] = { count: 0, percentage: 0 };
+    if (q.type === 'text') {
+      results[q.id] = { type: 'text', entries: [], count: 0 };
+    } else {
+      results[q.id] = {};
+      for (const opt of optValues(q)) {
+        results[q.id][opt] = { count: 0, percentage: 0 };
+      }
     }
   }
 
@@ -44,7 +60,12 @@ function computeResults(session) {
   for (const response of session.responses) {
     for (const q of QUESTIONS) {
       const answer = response.answers[q.id];
-      if (q.type === 'multiple' && Array.isArray(answer)) {
+      if (q.type === 'text') {
+        if (typeof answer === 'string' && answer.trim()) {
+          results[q.id].entries.push({ text: answer, submittedAt: response.submittedAt });
+          results[q.id].count++;
+        }
+      } else if (q.type === 'multiple' && Array.isArray(answer)) {
         for (const a of answer) {
           if (results[q.id][a]) results[q.id][a].count++;
         }
@@ -56,7 +77,8 @@ function computeResults(session) {
 
   if (total > 0) {
     for (const q of QUESTIONS) {
-      for (const opt of q.options) {
+      if (q.type === 'text') continue;
+      for (const opt of optValues(q)) {
         results[q.id][opt].percentage = Math.round((results[q.id][opt].count / total) * 100);
       }
     }
@@ -176,23 +198,50 @@ app.post('/api/sessions/:id/responses', (req, res) => {
     }
 
     const { answers } = req.body;
-    if (!answers) return res.status(400).json({ error: '回答データが必要です' });
+    if (!answers || typeof answers !== 'object') return res.status(400).json({ error: '回答データが必要です' });
 
-    // Validate all questions answered
+    // Normalize and validate all questions
+    const normalized = {};
     for (const q of QUESTIONS) {
       const answer = answers[q.id];
+
+      if (q.type === 'text') {
+        // Optional unless q.required is true
+        if (answer === undefined || answer === null || answer === '') {
+          if (q.required) {
+            return res.status(400).json({ error: `質問 ${q.id} が未回答です` });
+          }
+          normalized[q.id] = '';
+          continue;
+        }
+        if (typeof answer !== 'string') {
+          return res.status(400).json({ error: `質問 ${q.id} の回答形式が無効です` });
+        }
+        const trimmed = answer.trim();
+        if (q.required && !trimmed) {
+          return res.status(400).json({ error: `質問 ${q.id} が未回答です` });
+        }
+        if (q.maxLength && trimmed.length > q.maxLength) {
+          return res.status(400).json({ error: `質問 ${q.id} は${q.maxLength}文字以内で入力してください` });
+        }
+        normalized[q.id] = trimmed;
+        continue;
+      }
 
       if (answer === undefined || answer === null) {
         return res.status(400).json({ error: `質問 ${q.id} が未回答です` });
       }
 
+      const validOptions = optValues(q);
+
       if (q.type === 'single') {
         if (typeof answer !== 'string' || !answer) {
           return res.status(400).json({ error: `質問 ${q.id} は1つ選択してください` });
         }
-        if (!q.options.includes(answer)) {
+        if (!validOptions.includes(answer)) {
           return res.status(400).json({ error: `質問 ${q.id} の回答が無効です` });
         }
+        normalized[q.id] = answer;
       }
 
       if (q.type === 'multiple') {
@@ -200,21 +249,24 @@ app.post('/api/sessions/:id/responses', (req, res) => {
           return res.status(400).json({ error: `質問 ${q.id} は1つ以上選択してください` });
         }
         for (const a of answer) {
-          if (!q.options.includes(a)) {
+          if (!validOptions.includes(a)) {
             return res.status(400).json({ error: `質問 ${q.id} の回答「${a}」が無効です` });
           }
         }
-        // Exclusive options check
-        const exclusiveOptions = ['使っていない', '分からない'];
-        const hasExclusive = answer.some(a => exclusiveOptions.includes(a));
-        const hasOther = answer.some(a => !exclusiveOptions.includes(a));
-        if (hasExclusive && hasOther) {
-          return res.status(400).json({ error: `質問 ${q.id}: 「使っていない」「分からない」は他と同時選択できません` });
+        // Exclusive options check (per-question)
+        const exclusives = exclusiveValues(q);
+        if (exclusives.length > 0) {
+          const hasExclusive = answer.some(a => exclusives.includes(a));
+          const hasOther = answer.some(a => !exclusives.includes(a));
+          if (hasExclusive && hasOther) {
+            return res.status(400).json({ error: `質問 ${q.id}: 「${exclusives.join('」「')}」は他と同時選択できません` });
+          }
         }
+        normalized[q.id] = answer;
       }
     }
 
-    session.responses.push({ answers, submittedAt: new Date().toISOString() });
+    session.responses.push({ answers: normalized, submittedAt: new Date().toISOString() });
 
     const results = computeResults(session);
     const responseCount = session.responses.length;

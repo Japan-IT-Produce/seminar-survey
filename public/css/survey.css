@@ -188,6 +188,52 @@
   flex: 1;
 }
 
+/* --- Text Input (free-text question) --- */
+.text-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.text-input {
+  width: 100%;
+  min-height: 120px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-card);
+  font-family: var(--font-ja);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--color-text);
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--transition-fast),
+              box-shadow var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.text-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.text-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(18, 73, 160, 0.1);
+}
+
+.question-card.error .text-input {
+  border-color: var(--color-error);
+}
+
+.text-input__counter {
+  font-family: var(--font-en);
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  text-align: right;
+  letter-spacing: 0.02em;
+}
+
 /* --- Submit Button --- */
 .survey-footer {
   position: sticky;

@@ -8,7 +8,15 @@
   let charts = {};
   let responseCount = 0;
 
-  const CHART_COLORS = ['#0F4C81', '#00D4AA', '#6C5CE7', '#F59E0B', '#EF4444', '#3B82F6'];
+  const CHART_COLORS = ['#0F4C81', '#00D4AA', '#6C5CE7', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899'];
+
+  // Helpers (mirror server)
+  const optValues = (q) => q.type === 'text' ? [] : q.options.map(o => typeof o === 'string' ? o : o.value);
+
+  // HTML escape for free-text rendering
+  const escapeHtml = (s) => String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
   // --- Init ---
   async function init() {
@@ -275,24 +283,46 @@
         title.className = 'chart-card__title';
         title.textContent = q.text;
 
-        const empty = document.createElement('div');
-        empty.className = 'chart-card__empty';
-        empty.id = `chart-empty-${q.id}`;
-        empty.textContent = 'まだ回答がありません';
-
-        const canvasWrapper = document.createElement('div');
-        canvasWrapper.className = 'chart-card__canvas-wrapper';
-        canvasWrapper.id = `chart-wrapper-${q.id}`;
-        canvasWrapper.style.display = 'none';
-
-        const canvas = document.createElement('canvas');
-        canvas.id = `chart-${q.id}`;
-
-        canvasWrapper.appendChild(canvas);
         card.appendChild(num);
         card.appendChild(title);
-        card.appendChild(empty);
-        card.appendChild(canvasWrapper);
+
+        if (q.type === 'text') {
+          const meta = document.createElement('div');
+          meta.className = 'text-answers__meta';
+          meta.innerHTML = `<span class="text-answers__count" id="text-count-${q.id}">0</span> 件の回答`;
+
+          const empty = document.createElement('div');
+          empty.className = 'chart-card__empty';
+          empty.id = `text-empty-${q.id}`;
+          empty.textContent = 'まだ回答がありません';
+
+          const list = document.createElement('ul');
+          list.className = 'text-answers';
+          list.id = `text-list-${q.id}`;
+          list.style.display = 'none';
+
+          card.appendChild(meta);
+          card.appendChild(empty);
+          card.appendChild(list);
+        } else {
+          const empty = document.createElement('div');
+          empty.className = 'chart-card__empty';
+          empty.id = `chart-empty-${q.id}`;
+          empty.textContent = 'まだ回答がありません';
+
+          const canvasWrapper = document.createElement('div');
+          canvasWrapper.className = 'chart-card__canvas-wrapper';
+          canvasWrapper.id = `chart-wrapper-${q.id}`;
+          canvasWrapper.style.display = 'none';
+
+          const canvas = document.createElement('canvas');
+          canvas.id = `chart-${q.id}`;
+
+          canvasWrapper.appendChild(canvas);
+          card.appendChild(empty);
+          card.appendChild(canvasWrapper);
+        }
+
         content.appendChild(card);
       });
     }
@@ -314,17 +344,19 @@
     charts = {};
 
     sessionData.questions.forEach((q) => {
+      if (q.type === 'text') return;
       const ctx = document.getElementById(`chart-${q.id}`);
       if (!ctx) return;
 
-      const colors = q.options.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
+      const opts = optValues(q);
+      const colors = opts.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
 
       charts[q.id] = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: q.options,
+          labels: opts,
           datasets: [{
-            data: new Array(q.options.length).fill(0),
+            data: new Array(opts.length).fill(0),
             backgroundColor: colors,
             borderRadius: 6,
             barThickness: 24
@@ -373,7 +405,7 @@
       // Set canvas wrapper height
       const wrapper = document.getElementById(`chart-wrapper-${q.id}`);
       if (wrapper) {
-        wrapper.style.height = `${Math.max(q.options.length * 40, 120)}px`;
+        wrapper.style.height = `${Math.max(opts.length * 40, 120)}px`;
       }
     });
   }
@@ -382,10 +414,15 @@
     if (!results || !sessionData.questions) return;
 
     sessionData.questions.forEach((q) => {
+      if (q.type === 'text') {
+        renderTextAnswers(q, results[q.id]);
+        return;
+      }
+
       const chart = charts[q.id];
       if (!chart) return;
 
-      const data = q.options.map(opt => results[q.id]?.[opt]?.count || 0);
+      const data = optValues(q).map(opt => results[q.id]?.[opt]?.count || 0);
       const hasData = data.some(v => v > 0);
 
       chart.data.datasets[0].data = data;
@@ -400,12 +437,52 @@
     });
   }
 
+  function renderTextAnswers(q, result) {
+    const listEl = document.getElementById(`text-list-${q.id}`);
+    const emptyEl = document.getElementById(`text-empty-${q.id}`);
+    const countEl = document.getElementById(`text-count-${q.id}`);
+    if (!listEl || !emptyEl || !countEl) return;
+
+    const entries = (result && result.entries) || [];
+    const count = (result && result.count) || 0;
+
+    countEl.textContent = count;
+
+    if (entries.length === 0) {
+      emptyEl.style.display = 'block';
+      listEl.style.display = 'none';
+      listEl.innerHTML = '';
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+    listEl.style.display = 'block';
+
+    // Render newest first, cap at 100
+    const sorted = entries.slice().sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+    const capped = sorted.slice(0, 100);
+    listEl.innerHTML = capped.map(e => {
+      const time = e.submittedAt ? new Date(e.submittedAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
+      return `<li class="text-answer"><div class="text-answer__body">${escapeHtml(e.text)}</div><div class="text-answer__time">${time}</div></li>`;
+    }).join('');
+  }
+
   function clearCharts() {
     if (!sessionData.questions) return;
     sessionData.questions.forEach((q) => {
+      if (q.type === 'text') {
+        const listEl = document.getElementById(`text-list-${q.id}`);
+        const emptyEl = document.getElementById(`text-empty-${q.id}`);
+        const countEl = document.getElementById(`text-count-${q.id}`);
+        if (listEl) { listEl.innerHTML = ''; listEl.style.display = 'none'; }
+        if (emptyEl) emptyEl.style.display = 'block';
+        if (countEl) countEl.textContent = '0';
+        return;
+      }
+
       const chart = charts[q.id];
       if (!chart) return;
-      chart.data.datasets[0].data = new Array(q.options.length).fill(0);
+      chart.data.datasets[0].data = new Array(optValues(q).length).fill(0);
       chart.update();
 
       const emptyEl = document.getElementById(`chart-empty-${q.id}`);

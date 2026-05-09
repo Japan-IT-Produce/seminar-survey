@@ -8,6 +8,11 @@
   let sessionData = null;
   const answers = {};
 
+  // Helpers (mirror server-side)
+  const optValues = (q) => q.type === 'text' ? [] : q.options.map(o => typeof o === 'string' ? o : o.value);
+  const exclusiveValues = (q) => q.type === 'text' ? []
+    : q.options.filter(o => typeof o === 'object' && o.exclusive).map(o => o.value);
+
   // --- Init ---
   async function init() {
     // If no session ID in URL, fetch the latest session
@@ -184,34 +189,71 @@
         hint.className = 'question-card__type-hint';
         hint.textContent = '（複数選択可）';
         numLine.appendChild(hint);
+      } else if (q.type === 'text' && !q.required) {
+        const hint = document.createElement('span');
+        hint.className = 'question-card__type-hint';
+        hint.textContent = '（任意）';
+        numLine.appendChild(hint);
       }
 
       const text = document.createElement('p');
       text.className = 'question-card__text';
       text.textContent = q.text;
 
-      const optList = document.createElement('div');
-      optList.className = 'option-list';
-
-      q.options.forEach((opt) => {
-        const btn = document.createElement('button');
-        btn.className = 'option-btn';
-        btn.type = 'button';
-        btn.setAttribute('data-qid', q.id);
-        btn.setAttribute('data-value', opt);
-
-        const label = document.createElement('span');
-        label.className = 'option-btn__label';
-        label.textContent = opt;
-        btn.appendChild(label);
-
-        btn.addEventListener('click', () => handleOptionClick(q, opt, btn, optList));
-        optList.appendChild(btn);
-      });
-
       card.appendChild(numLine);
       card.appendChild(text);
-      card.appendChild(optList);
+
+      if (q.type === 'text') {
+        const wrap = document.createElement('div');
+        wrap.className = 'text-input-wrap';
+
+        const ta = document.createElement('textarea');
+        ta.className = 'text-input';
+        ta.id = `text-input-${q.id}`;
+        ta.rows = 4;
+        if (q.maxLength) ta.maxLength = q.maxLength;
+        if (q.placeholder) ta.placeholder = q.placeholder;
+
+        const counter = document.createElement('div');
+        counter.className = 'text-input__counter';
+        const updateCounter = () => {
+          const len = ta.value.length;
+          counter.textContent = q.maxLength ? `${len} / ${q.maxLength}` : `${len}`;
+        };
+        updateCounter();
+
+        ta.addEventListener('input', () => {
+          answers[q.id] = ta.value;
+          updateCounter();
+          card.classList.remove('error');
+        });
+
+        wrap.appendChild(ta);
+        wrap.appendChild(counter);
+        card.appendChild(wrap);
+      } else {
+        const optList = document.createElement('div');
+        optList.className = 'option-list';
+
+        optValues(q).forEach((opt) => {
+          const btn = document.createElement('button');
+          btn.className = 'option-btn';
+          btn.type = 'button';
+          btn.setAttribute('data-qid', q.id);
+          btn.setAttribute('data-value', opt);
+
+          const label = document.createElement('span');
+          label.className = 'option-btn__label';
+          label.textContent = opt;
+          btn.appendChild(label);
+
+          btn.addEventListener('click', () => handleOptionClick(q, opt, btn, optList));
+          optList.appendChild(btn);
+        });
+
+        card.appendChild(optList);
+      }
+
       main.appendChild(card);
     });
 
@@ -235,7 +277,7 @@
 
   // --- Option Click Handler ---
   function handleOptionClick(question, value, btn, optList) {
-    const exclusiveOptions = ['使っていない', '分からない'];
+    const exclusiveOptions = exclusiveValues(question);
     const allBtns = optList.querySelectorAll('.option-btn');
 
     // Remove error state
@@ -290,7 +332,20 @@
     // Validate
     let firstError = null;
     for (const q of questions) {
-      if (!answers[q.id] || (Array.isArray(answers[q.id]) && answers[q.id].length === 0)) {
+      const a = answers[q.id];
+
+      if (q.type === 'text') {
+        if (q.required && (!a || !String(a).trim())) {
+          const card = document.getElementById(`card-${q.id}`);
+          if (card) {
+            card.classList.add('error');
+            if (!firstError) firstError = card;
+          }
+        }
+        continue;
+      }
+
+      if (a === undefined || a === null || (Array.isArray(a) && a.length === 0) || a === '') {
         const card = document.getElementById(`card-${q.id}`);
         if (card) {
           card.classList.add('error');
@@ -308,11 +363,19 @@
     submitBtn.classList.add('loading');
     submitBtn.disabled = true;
 
+    // Build payload — ensure optional text questions are sent as ""
+    const payload = { ...answers };
+    for (const q of questions) {
+      if (q.type === 'text' && (payload[q.id] === undefined || payload[q.id] === null)) {
+        payload[q.id] = '';
+      }
+    }
+
     try {
       const res = await fetch(`/api/sessions/${sessionId}/responses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers })
+        body: JSON.stringify({ answers: payload })
       });
 
       if (!res.ok) {

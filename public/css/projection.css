@@ -387,6 +387,56 @@ body::before {
 }
 
 /* ===========================
+   Free-text Card (Q5 on projection)
+   =========================== */
+.proj-text-card__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 6%, #000 94%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 6%, #000 94%, transparent 100%);
+}
+
+.proj-text-card__list::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
+}
+
+.proj-text-card__item {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.94);
+  white-space: pre-wrap;
+  word-break: break-word;
+  animation: projTextFadeIn 0.5s ease;
+}
+
+@keyframes projTextFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.proj-text-card__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 1.0rem;
+  letter-spacing: 0.02em;
+}
+
+/* ===========================
    Animations
    =========================== */
 @keyframes fadeIn {
