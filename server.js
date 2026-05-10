@@ -20,13 +20,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // --- Questions ---
 const QUESTIONS = [
-  { id: "q1", text: "プライベートを含め、使ったことのあるAIツールはどれですか？", type: "multiple",
+  { id: "q1", text: "プライベート利用も含め、普段使っているAIツールをすべて選択してください。", type: "multiple",
     options: ["Microsoft Copilot", "ChatGPT", "Gemini", "Claude", "NotebookLM", "Grok", "その他"] },
   { id: "q2", text: "仕事で生成AIをどのくらいの頻度で使っていますか？", type: "single",
     options: ["ほとんど使っていない", "月に数日程度", "週に1日程度", "週に3日程度", "ほぼ毎日使っている"] },
-  { id: "q3", text: "仕事で生成AIをどの業務に使ってみたいですか？", type: "multiple",
+  { id: "q3", text: "仕事で生成AIをどのような業務に使っていますか？", type: "multiple",
     options: ["文章作成・資料作成", "情報収集・要約", "企画・アイデア出し", "会議メモ・議事録整理",
-              { value: "まだイメージが湧かない", exclusive: true },
+              "翻訳・英文作成", "プログラム・マクロ作成",
               { value: "その他（自由入力）", withText: true, textMaxLength: 200 }] },
   { id: "q4", text: "生成AIを使うとき、どこでつまずくことが多いですか？", type: "multiple",
     options: ["何に使えばよいか分からない", "指示文の書き方が分からない", "回答が正しいか判断できない", "情報漏えいや著作権が不安",

@@ -16,6 +16,8 @@
 
   // Helpers (mirror server)
   const optValues = (q) => q.type === 'text' ? [] : q.options.map(o => typeof o === 'string' ? o : o.value);
+  const withTextOptions = (q) => q.type === 'text' ? []
+    : q.options.filter(o => typeof o === 'object' && o.withText);
 
   const escapeHtml = (s) => String(s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -214,6 +216,26 @@
           canvas.id = `proj-chart-${q.id}`;
           canvasWrap.appendChild(canvas);
           card.appendChild(canvasWrap);
+
+          // "Other (free text)" sub-list — shown beneath chart on projection
+          if (withTextOptions(q).length > 0) {
+            const otherWrap = document.createElement('div');
+            otherWrap.className = 'proj-other-texts';
+            otherWrap.id = `proj-other-texts-${q.id}`;
+            otherWrap.style.display = 'none';
+
+            const otherTitle = document.createElement('div');
+            otherTitle.className = 'proj-other-texts__title';
+            otherTitle.textContent = '「その他」';
+
+            const otherList = document.createElement('ul');
+            otherList.className = 'proj-other-texts__list';
+            otherList.id = `proj-other-texts-list-${q.id}`;
+
+            otherWrap.appendChild(otherTitle);
+            otherWrap.appendChild(otherList);
+            card.appendChild(otherWrap);
+          }
         }
 
         item.appendChild(card);
@@ -273,8 +295,8 @@
           datasets: [{
             data: new Array(opts.length).fill(0),
             backgroundColor: colors,
-            borderRadius: 8,
-            barThickness: 28
+            borderRadius: 6,
+            barThickness: opts.length >= 7 ? 18 : opts.length >= 6 ? 22 : 26
           }]
         },
         options: {
@@ -335,7 +357,32 @@
       if (!chart) return;
       chart.data.datasets[0].data = optValues(q).map(opt => results[q.id]?.[opt]?.count || 0);
       chart.update();
+
+      if (withTextOptions(q).length > 0) {
+        renderProjOtherTexts(q, results[q.id]?.__other_texts__ || []);
+      }
     });
+  }
+
+  function renderProjOtherTexts(q, entries) {
+    const wrap = document.getElementById(`proj-other-texts-${q.id}`);
+    const list = document.getElementById(`proj-other-texts-list-${q.id}`);
+    if (!wrap || !list) return;
+
+    if (entries.length === 0) {
+      wrap.style.display = 'none';
+      list.innerHTML = '';
+      return;
+    }
+
+    wrap.style.display = 'block';
+
+    // Newest first, cap at 4 for projection card vertical room
+    const sorted = entries.slice().sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+    const capped = sorted.slice(0, 4);
+    list.innerHTML = capped.map(e =>
+      `<li class="proj-other-texts__item">${escapeHtml(e.text)}</li>`
+    ).join('');
   }
 
   function renderProjText(q, result) {
@@ -377,6 +424,11 @@
       if (!chart) return;
       chart.data.datasets[0].data = new Array(optValues(q).length).fill(0);
       chart.update();
+
+      const otherWrap = document.getElementById(`proj-other-texts-${q.id}`);
+      const otherList = document.getElementById(`proj-other-texts-list-${q.id}`);
+      if (otherWrap) otherWrap.style.display = 'none';
+      if (otherList) otherList.innerHTML = '';
     });
   }
 

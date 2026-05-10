@@ -430,6 +430,49 @@ body::before {
   letter-spacing: 0.02em;
 }
 
+/* "Other (free text)" sub-list inside chart card on projection */
+.proj-other-texts {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.proj-other-texts__title {
+  font-family: var(--font-en);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.proj-other-texts__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 110px;
+  overflow: hidden;
+}
+
+.proj-other-texts__item {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xs);
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.86);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: projTextFadeIn 0.4s ease;
+}
+
 /* ===========================
    Animations
    =========================== */
