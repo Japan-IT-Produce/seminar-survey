@@ -296,7 +296,10 @@
             data: new Array(opts.length).fill(0),
             backgroundColor: colors,
             borderRadius: 6,
-            barThickness: opts.length >= 7 ? 18 : opts.length >= 6 ? 22 : 26
+            // Soft cap — Chart.js shrinks bars when container is tight
+            maxBarThickness: 32,
+            categoryPercentage: 0.78,
+            barPercentage: 0.92
           }]
         },
         options: {
