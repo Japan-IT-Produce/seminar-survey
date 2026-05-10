@@ -12,7 +12,15 @@
   let currentCount = 0;
   let displayedCount = 0;
 
-  const CHART_COLORS = ['#00D4AA', '#6C5CE7', '#3B82F6', '#F59E0B', '#EF4444', '#EC4899', '#22D3EE'];
+  // Single accent + neutral muted bars — leader is highlighted dynamically per chart.
+  const COLOR_LEADER = '#00D4AA';
+  const COLOR_LEADER_BORDER = '#00F0BC';
+  const COLOR_BAR_MUTED = 'rgba(255, 255, 255, 0.32)';
+  const COLOR_BAR_MUTED_BORDER = 'rgba(255, 255, 255, 0.42)';
+  const COLOR_FLASH = '#FFFFFF';
+
+  // Per-question last-seen counts so we can flash the bar that incremented.
+  const lastCounts = {};
 
   // Helpers (mirror server)
   const optValues = (q) => q.type === 'text' ? [] : q.options.map(o => typeof o === 'string' ? o : o.value);
@@ -92,6 +100,7 @@
       console.log('[Projection] session-reset');
       currentCount = 0;
       displayedCount = 0;
+      Object.keys(lastCounts).forEach(k => delete lastCounts[k]);
       updateCountDisplay(0);
       clearCharts();
       showWaiting();
@@ -165,7 +174,7 @@
     count.textContent = '0';
     const countLabel = document.createElement('div');
     countLabel.className = 'proj-topbar__count-label';
-    countLabel.textContent = '回答数';
+    countLabel.textContent = 'LIVE 回答数';
     right.appendChild(count);
     right.appendChild(countLabel);
 
@@ -205,7 +214,14 @@
           const empty = document.createElement('div');
           empty.className = 'proj-text-card__empty';
           empty.id = `proj-text-empty-${q.id}`;
-          empty.textContent = '回答をお待ちしています…';
+          const emptyTitle = document.createElement('div');
+          emptyTitle.className = 'proj-text-card__empty-title';
+          emptyTitle.textContent = '回答をお待ちしています';
+          const emptySub = document.createElement('div');
+          emptySub.className = 'proj-text-card__empty-sub';
+          emptySub.textContent = 'スマートフォンから自由にコメントしてください';
+          empty.appendChild(emptyTitle);
+          empty.appendChild(emptySub);
 
           card.appendChild(empty);
           card.appendChild(list);
@@ -286,7 +302,6 @@
       if (!ctx) return;
 
       const opts = optValues(q);
-      const colors = opts.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
 
       charts[q.id] = new Chart(ctx, {
         type: 'bar',
@@ -294,10 +309,11 @@
           labels: opts,
           datasets: [{
             data: new Array(opts.length).fill(0),
-            backgroundColor: colors,
-            borderRadius: 6,
-            // Soft cap — Chart.js shrinks bars when container is tight
-            maxBarThickness: 32,
+            backgroundColor: opts.map(() => COLOR_BAR_MUTED),
+            borderColor: opts.map(() => COLOR_BAR_MUTED_BORDER),
+            borderWidth: 1,
+            borderRadius: 8,
+            maxBarThickness: 34,
             categoryPercentage: 0.78,
             barPercentage: 0.92
           }]
@@ -307,7 +323,7 @@
           responsive: true,
           maintainAspectRatio: false,
           animation: {
-            duration: 800,
+            duration: 700,
             easing: 'easeOutQuart'
           },
           plugins: {
@@ -318,23 +334,29 @@
             x: {
               beginAtZero: true,
               grid: {
-                color: 'rgba(255, 255, 255, 0.08)'
+                color: 'rgba(255, 255, 255, 0.06)',
+                drawTicks: false
               },
+              border: { display: false },
               ticks: {
-                color: 'rgba(255, 255, 255, 0.85)',
-                font: { family: 'Inter', size: 13 },
-                stepSize: 1
+                color: 'rgba(255, 255, 255, 0.55)',
+                font: { family: 'Inter', size: 12, weight: '600' },
+                stepSize: 1,
+                padding: 6
               }
             },
             y: {
               grid: { display: false },
+              border: { display: false },
               ticks: {
-                color: 'rgba(255, 255, 255, 0.88)',
+                color: 'rgba(255, 255, 255, 0.92)',
                 autoSkip: false,
                 font: {
                   family: 'Noto Sans JP',
-                  size: 12
+                  size: 13,
+                  weight: '500'
                 },
+                padding: 8,
                 callback: function (value) {
                   const label = this.getLabelForValue(value);
                   return label.length > 14 ? label.slice(0, 13) + '…' : label;
@@ -348,6 +370,25 @@
     });
   }
 
+  // Decide bar colors per chart: leader (max value, > 0) is accent, others muted.
+  // Optionally flash a specific bar index for new-response feedback.
+  function colorBars(data, flashIdx) {
+    const max = Math.max(...data);
+    return data.map((v, i) => {
+      if (i === flashIdx) return COLOR_FLASH;
+      if (max > 0 && v === max) return COLOR_LEADER;
+      return COLOR_BAR_MUTED;
+    });
+  }
+  function borderBars(data, flashIdx) {
+    const max = Math.max(...data);
+    return data.map((v, i) => {
+      if (i === flashIdx) return COLOR_FLASH;
+      if (max > 0 && v === max) return COLOR_LEADER_BORDER;
+      return COLOR_BAR_MUTED_BORDER;
+    });
+  }
+
   function updateCharts(results) {
     if (!results || !sessionData.questions) return;
 
@@ -358,8 +399,39 @@
       }
       const chart = charts[q.id];
       if (!chart) return;
-      chart.data.datasets[0].data = optValues(q).map(opt => results[q.id]?.[opt]?.count || 0);
+
+      const opts = optValues(q);
+      const data = opts.map(opt => results[q.id]?.[opt]?.count || 0);
+
+      // Detect which option (if any) just incremented for flash feedback.
+      const prev = lastCounts[q.id] || new Array(opts.length).fill(0);
+      let flashIdx = -1;
+      for (let i = 0; i < data.length; i++) {
+        if (data[i] > (prev[i] || 0)) { flashIdx = i; break; }
+      }
+      lastCounts[q.id] = data.slice();
+
+      chart.data.datasets[0].data = data;
+      chart.data.datasets[0].backgroundColor = colorBars(data, flashIdx);
+      chart.data.datasets[0].borderColor = borderBars(data, flashIdx);
       chart.update();
+
+      // Pulse the affected card so participants notice from the back of the room.
+      if (flashIdx >= 0) {
+        const cardEl = document.querySelector(`#proj-chart-${q.id}`)?.closest('.proj-chart-card');
+        if (cardEl) {
+          cardEl.classList.remove('proj-chart-card--pulse');
+          // Force reflow so the animation restarts.
+          void cardEl.offsetWidth;
+          cardEl.classList.add('proj-chart-card--pulse');
+        }
+        // After 700ms restore leader colors (no flash).
+        setTimeout(() => {
+          chart.data.datasets[0].backgroundColor = colorBars(data, -1);
+          chart.data.datasets[0].borderColor = borderBars(data, -1);
+          chart.update('none');
+        }, 700);
+      }
 
       if (withTextOptions(q).length > 0) {
         renderProjOtherTexts(q, results[q.id]?.__other_texts__ || []);

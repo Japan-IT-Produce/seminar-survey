@@ -105,14 +105,39 @@ body::before {
    Glass Card
    =========================== */
 .glass-card {
+  position: relative;
   background: rgba(255, 255, 255, 0.055);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 24px 26px;
   box-shadow: 0 4px 32px rgba(0, 0, 0, 0.35),
               inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Subtle accent line at top edge of each chart card */
+.proj-chart-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 196, 154, 0.5), transparent);
+  pointer-events: none;
+}
+
+/* Free-text card uses a violet accent to feel qualitatively distinct */
+.proj-text-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.55), transparent);
+  pointer-events: none;
 }
 
 /* ===========================
@@ -309,17 +334,37 @@ body::before {
 }
 
 .proj-topbar__count-label {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.42);
-  margin-top: 4px;
-  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-en);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.78);
+  margin-top: 6px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+}
+
+.proj-topbar__count-label::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 12px rgba(0, 196, 154, 0.7);
+  animation: livePulse 1.6s ease-in-out infinite;
 }
 
 @keyframes countBounce {
   0%   { transform: scale(1); }
   45%  { transform: scale(1.18); }
   100% { transform: scale(1); }
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.85); }
 }
 
 /* ===========================
@@ -358,25 +403,54 @@ body::before {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  transition: box-shadow 0.4s ease;
+}
+
+.proj-chart-card--pulse {
+  box-shadow: 0 0 0 2px rgba(0, 196, 154, 0.55),
+              0 0 60px rgba(0, 196, 154, 0.35),
+              0 4px 32px rgba(0, 0, 0, 0.35),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: cardPulse 0.7s ease-out;
+}
+
+@keyframes cardPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(0, 196, 154, 0.6),
+                     0 4px 32px rgba(0, 0, 0, 0.35),
+                     inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+  60%  { box-shadow: 0 0 0 4px rgba(0, 196, 154, 0.5),
+                     0 0 80px rgba(0, 196, 154, 0.45),
+                     0 4px 32px rgba(0, 0, 0, 0.35),
+                     inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 196, 154, 0),
+                     0 4px 32px rgba(0, 0, 0, 0.35),
+                     inset 0 1px 0 rgba(255, 255, 255, 0.1); }
 }
 
 .proj-chart-card__number {
+  display: inline-block;
   font-family: var(--font-en);
-  font-weight: 700;
-  font-size: 0.7rem;
-  color: var(--color-accent);
-  margin-bottom: 6px;
-  letter-spacing: 0.1em;
+  font-weight: 800;
+  font-size: 0.78rem;
+  color: var(--color-accent-light);
+  background: rgba(0, 196, 154, 0.14);
+  border: 1px solid rgba(0, 196, 154, 0.36);
+  padding: 3px 10px 3px 10px;
+  border-radius: var(--radius-full);
+  margin-bottom: 10px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  align-self: flex-start;
 }
 
 .proj-chart-card__title {
   font-weight: 700;
-  font-size: 1.0rem;
-  color: rgba(255, 255, 255, 0.92);
-  margin-bottom: 12px;
-  line-height: 1.35;
+  font-size: 1.18rem;
+  color: #FFFFFF;
+  margin-bottom: 16px;
+  line-height: 1.4;
   letter-spacing: -0.01em;
+  font-feature-settings: "palt" 1;
 }
 
 .proj-chart-card__canvas-wrapper {
@@ -419,13 +493,15 @@ body::before {
 .proj-text-card__item {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 3px solid rgba(124, 58, 237, 0.6);
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  font-size: 1.05rem;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.94);
+  padding: 12px 16px;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.95);
   white-space: pre-wrap;
   word-break: break-word;
+  font-feature-settings: "palt" 1;
   animation: projTextFadeIn 0.5s ease;
 }
 
@@ -437,18 +513,43 @@ body::before {
 .proj-text-card__empty {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 1.0rem;
+  gap: 8px;
+  text-align: center;
+  padding: 16px;
+}
+
+.proj-text-card__empty::before {
+  content: '';
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 12px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.32)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.proj-text-card__empty-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
   letter-spacing: 0.02em;
+}
+
+.proj-text-card__empty-sub {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.04em;
 }
 
 /* "Other (free text)" sub-list inside chart card on projection */
 .proj-other-texts {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.16);
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
   flex-grow: 0;
   min-height: 0;
@@ -458,14 +559,25 @@ body::before {
 }
 
 .proj-other-texts__title {
-  font-family: var(--font-en);
-  font-size: 0.7rem;
+  font-family: var(--font-ja);
+  font-size: 0.85rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.6);
-  letter-spacing: 0.08em;
-  margin-bottom: 8px;
-  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.02em;
+  margin-bottom: 10px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.proj-other-texts__title::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  background: var(--color-accent);
+  border-radius: 2px;
+  display: inline-block;
 }
 
 .proj-other-texts__list {
@@ -474,23 +586,24 @@ body::before {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
 }
 
 .proj-other-texts__item {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: var(--radius-xs);
-  padding: 7px 12px;
-  font-size: 0.92rem;
-  line-height: 1.45;
-  color: rgba(255, 255, 255, 0.9);
-  white-space: nowrap;
+  border-left: 2px solid var(--color-accent);
+  padding: 4px 0 4px 12px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.92);
+  font-feature-settings: "palt" 1;
+  /* Allow up to 2 lines, then ellipsize */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
   animation: projTextFadeIn 0.4s ease;
   flex-shrink: 0;
 }

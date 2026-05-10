@@ -16,7 +16,19 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      // HTML must always be revalidated so newly-deployed CSS/JS is picked up immediately
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    } else {
+      // Static assets: cache up to 5 min; ETag forces revalidation when content changes
+      res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate');
+    }
+  }
+}));
 
 // --- Questions ---
 const QUESTIONS = [
