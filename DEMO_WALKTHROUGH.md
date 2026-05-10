@@ -27,7 +27,7 @@
 - Anthropicアカウントでログイン（初回のみ）
 
 ### 1-4. 作業ディレクトリを準備
-- VS Codeでフォルダを開く（例: `c:\work\Antigravity`）
+- VS Codeでフォルダを開く（例: `c:\work\Socrates`）
 - Claude Codeのチャット欄から指示を出す準備完了
 
 ---
