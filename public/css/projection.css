@@ -461,13 +461,6 @@ body::before {
   overflow: hidden;
 }
 
-.proj-chart-card__canvas-wrapper > canvas {
-  position: absolute !important;
-  inset: 0;
-  width: 100% !important;
-  height: 100% !important;
-}
-
 /* ===========================
    Free-text Card (Q5 on projection)
    =========================== */

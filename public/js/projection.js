@@ -312,10 +312,11 @@
             backgroundColor: opts.map(() => COLOR_BAR_MUTED),
             borderColor: opts.map(() => COLOR_BAR_MUTED_BORDER),
             borderWidth: 1,
-            borderRadius: 8,
-            maxBarThickness: 34,
-            categoryPercentage: 0.78,
-            barPercentage: 0.92
+            borderRadius: 6,
+            // Tighter bars when more options; Chart.js will shrink further if needed
+            maxBarThickness: opts.length >= 7 ? 22 : opts.length >= 6 ? 26 : 32,
+            categoryPercentage: 0.82,
+            barPercentage: 0.9
           }]
         },
         options: {
@@ -353,7 +354,8 @@
                 autoSkip: false,
                 font: {
                   family: 'Noto Sans JP',
-                  size: 13,
+                  // Slightly smaller font when chart has many options + limited height
+                  size: opts.length >= 7 ? 11 : opts.length >= 6 ? 12 : 13,
                   weight: '500'
                 },
                 padding: 8,
@@ -367,6 +369,21 @@
         },
         plugins: [dataLabelPlugin]
       });
+
+      // Observe the wrapper so we re-measure when grid layout finalizes
+      // (Chart.js's responsive only watches window resize, not container resize)
+      const wrapper = ctx.parentElement;
+      if (wrapper && 'ResizeObserver' in window) {
+        const ro = new ResizeObserver(() => {
+          if (charts[q.id]) charts[q.id].resize();
+        });
+        ro.observe(wrapper);
+      }
+    });
+
+    // Force a resize on the next frame so charts pick up final layout dimensions
+    requestAnimationFrame(() => {
+      Object.values(charts).forEach(c => c.resize());
     });
   }
 
