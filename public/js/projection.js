@@ -381,10 +381,15 @@
       }
     });
 
-    // Force a resize on the next frame so charts pick up final layout dimensions
-    requestAnimationFrame(() => {
-      Object.values(charts).forEach(c => c.resize());
-    });
+    // Force resize at multiple ticks so charts pick up final layout dimensions
+    // even if fonts/layout settle on a delay (Noto Sans JP loads async).
+    const resizeAll = () => Object.values(charts).forEach(c => c.resize());
+    requestAnimationFrame(resizeAll);
+    setTimeout(resizeAll, 100);
+    setTimeout(resizeAll, 500);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(resizeAll);
+    }
   }
 
   // Decide bar colors per chart: leader (max value, > 0) is accent, others muted.
