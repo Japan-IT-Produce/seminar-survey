@@ -226,12 +226,34 @@
           card.appendChild(empty);
           card.appendChild(list);
         } else {
+          // Chart area: HTML labels column on the left + Chart.js canvas on the right.
+          // This guarantees labels never overlap regardless of Chart.js sizing.
+          const chartRow = document.createElement('div');
+          chartRow.className = 'proj-chart-row';
+
+          const labelsCol = document.createElement('ul');
+          labelsCol.className = 'proj-chart-labels';
+          labelsCol.id = `proj-chart-labels-${q.id}`;
+          optValues(q).forEach((opt) => {
+            const li = document.createElement('li');
+            li.className = 'proj-chart-labels__item';
+            li.title = opt; // tooltip on hover for truncated text
+            const span = document.createElement('span');
+            span.className = 'proj-chart-labels__text';
+            span.textContent = opt;
+            li.appendChild(span);
+            labelsCol.appendChild(li);
+          });
+
           const canvasWrap = document.createElement('div');
           canvasWrap.className = 'proj-chart-card__canvas-wrapper';
           const canvas = document.createElement('canvas');
           canvas.id = `proj-chart-${q.id}`;
           canvasWrap.appendChild(canvas);
-          card.appendChild(canvasWrap);
+
+          chartRow.appendChild(labelsCol);
+          chartRow.appendChild(canvasWrap);
+          card.appendChild(chartRow);
 
           // "Other (free text)" sub-list — shown beneath chart on projection
           if (withTextOptions(q).length > 0) {
@@ -347,23 +369,9 @@
               }
             },
             y: {
-              grid: { display: false },
-              border: { display: false },
-              ticks: {
-                color: 'rgba(255, 255, 255, 0.92)',
-                autoSkip: false,
-                font: {
-                  family: 'Noto Sans JP',
-                  // Slightly smaller font when chart has many options + limited height
-                  size: opts.length >= 7 ? 11 : opts.length >= 6 ? 12 : 13,
-                  weight: '500'
-                },
-                padding: 8,
-                callback: function (value) {
-                  const label = this.getLabelForValue(value);
-                  return label.length > 14 ? label.slice(0, 13) + '…' : label;
-                }
-              }
+              // Y-axis labels are rendered as HTML next to the chart (proj-chart-labels)
+              // so Chart.js's tick rendering is disabled to avoid any overlap risk.
+              display: false
             }
           }
         },
