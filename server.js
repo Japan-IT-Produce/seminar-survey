@@ -5,6 +5,7 @@ const cors = require('cors');
 const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -14,17 +15,43 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
+// Unique per server boot — forces browsers to fetch fresh assets after each deploy
+const ASSET_VERSION = Date.now().toString(36);
+
 app.use(cors());
 app.use(express.json());
+
+// Serve HTML with versioned asset URLs to defeat stale browser caches.
+// This runs BEFORE express.static so HTML never reaches the static handler.
+const HTML_ROUTES = {
+  '/': 'index.html',
+  '/index.html': 'index.html',
+  '/admin.html': 'admin.html',
+  '/projection.html': 'projection.html'
+};
+app.get(Object.keys(HTML_ROUTES), (req, res, next) => {
+  const file = HTML_ROUTES[req.path];
+  const filePath = path.join(__dirname, 'public', file);
+  fs.readFile(filePath, 'utf-8', (err, content) => {
+    if (err) return next(err);
+    const versioned = content
+      .replace(/(href="\/css\/[^"?]+)(")/g, `$1?v=${ASSET_VERSION}$2`)
+      .replace(/(src="\/js\/[^"?]+)(")/g, `$1?v=${ASSET_VERSION}$2`);
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(versioned);
+  });
+});
+
 app.use(express.static(path.join(__dirname, 'public'), {
   etag: true,
   lastModified: true,
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html')) {
-      // HTML must always be revalidated so newly-deployed CSS/JS is picked up immediately
+      // Safety net — most HTML is served by the route handler above
       res.setHeader('Cache-Control', 'no-cache, must-revalidate');
     } else {
-      // Static assets: cache up to 5 min; ETag forces revalidation when content changes
+      // Versioned assets are safe to cache aggressively (URL changes on deploy)
       res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate');
     }
   }
