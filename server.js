@@ -60,7 +60,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 // --- Questions ---
 const QUESTIONS = [
   { id: "q1", text: "プライベート利用も含め、普段使っているAIツールをすべて選択してください。", type: "multiple",
-    options: ["Microsoft Copilot", "ChatGPT", "Gemini", "Claude", "NotebookLM", "Grok", "その他"] },
+    options: ["Microsoft Copilot", "ChatGPT", "Gemini", "Claude", "NotebookLM", "Grok", "Copilot Studio", "その他"] },
   { id: "q2", text: "仕事で生成AIをどのくらいの頻度で使っていますか？", type: "single",
     options: ["ほとんど使っていない", "月に数日程度", "週に1日程度", "週に3日程度", "ほぼ毎日使っている"] },
   { id: "q3", text: "仕事で生成AIをどのような業務に使っていますか？", type: "multiple",
