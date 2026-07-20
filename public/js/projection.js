@@ -305,7 +305,7 @@
             if (value > 0) {
               ctx.save();
               ctx.fillStyle = '#FFFFFF';
-              ctx.font = '600 13px Inter';
+              ctx.font = '700 16px Inter';
               ctx.textAlign = 'left';
               ctx.textBaseline = 'middle';
               const x = bar.x + 8;

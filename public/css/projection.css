@@ -435,24 +435,25 @@ body::before {
   display: inline-block;
   font-family: var(--font-en);
   font-weight: 800;
-  font-size: 0.78rem;
+  font-size: 0.6rem;
   color: var(--color-accent-light);
   background: rgba(0, 196, 154, 0.14);
   border: 1px solid rgba(0, 196, 154, 0.36);
-  padding: 2px 9px;
+  padding: 1px 8px;
   border-radius: var(--radius-full);
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   align-self: flex-start;
 }
 
 .proj-chart-card__title {
-  font-weight: 700;
-  font-size: 1.0rem;
-  color: #FFFFFF;
-  margin-bottom: 8px;
-  line-height: 1.3;
+  font-weight: 600;
+  /* Question text is de-emphasised on projection so results can dominate */
+  font-size: clamp(0.56rem, 1.15vh, 0.76rem);
+  color: rgba(255, 255, 255, 0.82);
+  margin-bottom: 5px;
+  line-height: 1.25;
   letter-spacing: -0.01em;
   font-feature-settings: "palt" 1;
   /* Clamp long question text so it can never steal the chart's vertical room */
@@ -497,11 +498,11 @@ body::before {
 
 .proj-chart-labels__text {
   font-family: var(--font-ja);
-  /* Responsive to viewport height: shrinks on small screens so dense charts
-     never overlap, grows on big projectors so labels stay readable. */
-  font-size: clamp(0.55rem, 1.45vh, 0.92rem);
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.92);
+  /* Results are the star: responsive to viewport height (so dense charts never
+     overlap) but sized up relative to the de-emphasised question text. */
+  font-size: clamp(0.6rem, 1.62vh, 1.08rem);
+  font-weight: 600;
+  color: #FFFFFF;
   line-height: 1.1;
   font-feature-settings: "palt" 1;
   /* Single line + ellipsis: guarantees each label fits its row height so dense
@@ -514,8 +515,8 @@ body::before {
 
 /* In the tall Q3 card (right column), give labels more breathing room */
 .proj-grid__item:nth-child(3) .proj-chart-labels__text {
-  font-size: clamp(0.6rem, 1.55vh, 1.0rem);
-  line-height: 1.15;
+  font-size: clamp(0.66rem, 1.75vh, 1.15rem);
+  line-height: 1.12;
 }
 
 .proj-chart-card__canvas-wrapper {
