@@ -57,7 +57,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
   }
 }));
 
-// --- Questions --- (R8 AIプランナー育成講座 Day1 会場アンケート)
+// --- Questions --- (R8 AIプランナー育成講座 Day4 会場アンケート)
 const QUESTIONS = [
   { id: "q1", text: "普段使っている生成AIツールを教えてください（プライベート含む）", type: "multiple",
     options: ["ChatGPT", "Microsoft Copilot", "Gemini", "Claude", "NotebookLM",
