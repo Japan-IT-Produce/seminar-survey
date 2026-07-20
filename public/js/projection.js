@@ -353,7 +353,10 @@
             legend: { display: false },
             tooltip: { enabled: false }
           },
-          layout: { padding: 0 },
+          // Top/bottom padding keeps the first & last bars' value numbers from
+          // clipping at the canvas edge; right padding leaves room for the
+          // number after the longest bar. Labels use matching vertical padding.
+          layout: { padding: { top: 9, right: 34, bottom: 9, left: 0 } },
           scales: {
             x: {
               // Hidden: count values are drawn on each bar, so the numeric axis is
