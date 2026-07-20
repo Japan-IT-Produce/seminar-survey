@@ -391,8 +391,8 @@ body::before {
 /* Height is allocated by option count so dense charts never crush.
    Col1: Q1(10 opts) over Q2(6). Col2: Q4(8) over Q5(free text).
    Col3: Q3(13 opts) spans full height. Rows are out of 16 units. */
-.proj-grid__item:nth-child(1) { grid-column: 1; grid-row: 1 / 11; }  /* Q1: 10 */
-.proj-grid__item:nth-child(2) { grid-column: 1; grid-row: 11 / 17; } /* Q2: 6  */
+.proj-grid__item:nth-child(1) { grid-column: 1; grid-row: 1 / 10; }  /* Q1: 10 (short labels) */
+.proj-grid__item:nth-child(2) { grid-column: 1; grid-row: 10 / 17; } /* Q2: 6 (needs headroom for title) */
 .proj-grid__item:nth-child(3) { grid-column: 3; grid-row: 1 / 17; }  /* Q3: 13 (tall) */
 .proj-grid__item:nth-child(4) { grid-column: 2; grid-row: 1 / 10; }  /* Q4: 8  */
 .proj-grid__item:nth-child(5) { grid-column: 2; grid-row: 10 / 17; } /* Q5: text */
@@ -497,10 +497,12 @@ body::before {
 
 .proj-chart-labels__text {
   font-family: var(--font-ja);
-  font-size: 0.72rem;
+  /* Responsive to viewport height: shrinks on small screens so dense charts
+     never overlap, grows on big projectors so labels stay readable. */
+  font-size: clamp(0.55rem, 1.45vh, 0.92rem);
   font-weight: 500;
   color: rgba(255, 255, 255, 0.92);
-  line-height: 1.2;
+  line-height: 1.1;
   font-feature-settings: "palt" 1;
   /* Single line + ellipsis: guarantees each label fits its row height so dense
      charts never overlap. On wide (1080p) projectors labels rarely truncate. */
@@ -512,8 +514,8 @@ body::before {
 
 /* In the tall Q3 card (right column), give labels more breathing room */
 .proj-grid__item:nth-child(3) .proj-chart-labels__text {
-  font-size: 0.8rem;
-  line-height: 1.2;
+  font-size: clamp(0.6rem, 1.55vh, 1.0rem);
+  line-height: 1.15;
 }
 
 .proj-chart-card__canvas-wrapper {
