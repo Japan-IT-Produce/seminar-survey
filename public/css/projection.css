@@ -485,8 +485,9 @@ body::before {
   flex-direction: column;
   min-width: 0;
   text-align: right;
-  /* Match Chart.js horizontal-bar category-axis padding so labels align with bar centers */
-  padding-block: 8px;
+  /* Zero padding so the N equal label rows map 1:1 onto Chart.js's N category
+     bands (x-axis hidden → plot area = full canvas), keeping labels aligned. */
+  padding-block: 0;
 }
 
 .proj-chart-labels__item {

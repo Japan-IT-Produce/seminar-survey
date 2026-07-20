@@ -353,20 +353,14 @@
             legend: { display: false },
             tooltip: { enabled: false }
           },
+          layout: { padding: 0 },
           scales: {
             x: {
-              beginAtZero: true,
-              grid: {
-                color: 'rgba(255, 255, 255, 0.06)',
-                drawTicks: false
-              },
-              border: { display: false },
-              ticks: {
-                color: 'rgba(255, 255, 255, 0.55)',
-                font: { family: 'Inter', size: 12, weight: '600' },
-                stepSize: 1,
-                padding: 6
-              }
+              // Hidden: count values are drawn on each bar, so the numeric axis is
+              // redundant. Removing it lets bars fill the full height and align
+              // exactly with the HTML labels (no bottom-axis compression).
+              display: false,
+              beginAtZero: true
             },
             y: {
               // Y-axis labels are rendered as HTML next to the chart (proj-chart-labels)
