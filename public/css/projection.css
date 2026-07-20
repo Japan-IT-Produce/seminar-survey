@@ -405,7 +405,9 @@ body::before {
   /* Grid gives the canvas wrapper an explicit computed size that Chart.js
      can measure reliably. Flex column was giving us a 0-height race. */
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  /* Rows: title (auto) · chart area (fills) · optional extras (auto).
+     The number badge is display:none on projection, so it takes no row. */
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 0;
   transition: box-shadow 0.4s ease;
 }
@@ -432,7 +434,8 @@ body::before {
 }
 
 .proj-chart-card__number {
-  display: inline-block;
+  /* Hidden on projection results — the answers are the focus, not "Q1/Q2" */
+  display: none;
   font-family: var(--font-en);
   font-weight: 800;
   font-size: 0.6rem;
@@ -500,10 +503,10 @@ body::before {
   font-family: var(--font-ja);
   /* Results are the star: responsive to viewport height (so dense charts never
      overlap) but sized up relative to the de-emphasised question text. */
-  font-size: clamp(0.6rem, 1.62vh, 1.08rem);
+  font-size: clamp(0.66rem, 1.85vh, 1.22rem);
   font-weight: 600;
   color: #FFFFFF;
-  line-height: 1.1;
+  line-height: 1.08;
   font-feature-settings: "palt" 1;
   /* Single line + ellipsis: guarantees each label fits its row height so dense
      charts never overlap. On wide (1080p) projectors labels rarely truncate. */
@@ -515,8 +518,8 @@ body::before {
 
 /* In the tall Q3 card (right column), give labels more breathing room */
 .proj-grid__item:nth-child(3) .proj-chart-labels__text {
-  font-size: clamp(0.66rem, 1.75vh, 1.15rem);
-  line-height: 1.12;
+  font-size: clamp(0.72rem, 2vh, 1.3rem);
+  line-height: 1.1;
 }
 
 .proj-chart-card__canvas-wrapper {
