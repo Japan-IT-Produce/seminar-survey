@@ -189,7 +189,7 @@
       if (q.type === 'multiple') {
         const hint = document.createElement('span');
         hint.className = 'question-card__type-hint';
-        hint.textContent = '（複数選択可）';
+        hint.textContent = q.maxSelect ? `（${q.maxSelect}つまで選択可）` : '（複数選択可）';
         numLine.appendChild(hint);
       } else if (q.type === 'text' && !q.required) {
         const hint = document.createElement('span');
@@ -339,6 +339,9 @@
         if (btn.classList.contains('selected')) {
           btn.classList.remove('selected');
           answers[question.id] = answers[question.id].filter(a => a !== value);
+        } else if (question.maxSelect && answers[question.id].length >= question.maxSelect) {
+          // At selection limit — block adding and flash the hint
+          flashMaxHint(question);
         } else {
           btn.classList.add('selected');
           answers[question.id].push(value);
@@ -353,6 +356,18 @@
 
     // Toggle visibility of any withText sub-input for this question
     syncOtherTextVisibility(question);
+  }
+
+  // Briefly highlight the "N つまで" hint when the user tries to exceed maxSelect
+  function flashMaxHint(question) {
+    const card = document.getElementById(`card-${question.id}`);
+    if (!card) return;
+    const hint = card.querySelector('.question-card__type-hint');
+    if (!hint) return;
+    hint.classList.remove('flash');
+    // Force reflow so the animation can restart on rapid repeated taps
+    void hint.offsetWidth;
+    hint.classList.add('flash');
   }
 
   // Show/hide other-text input wrap based on whether its option is currently selected

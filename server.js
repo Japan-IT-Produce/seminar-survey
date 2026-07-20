@@ -57,23 +57,27 @@ app.use(express.static(path.join(__dirname, 'public'), {
   }
 }));
 
-// --- Questions ---
+// --- Questions --- (R8 AIプランナー育成講座 Day1 会場アンケート)
 const QUESTIONS = [
-  { id: "q1", text: "プライベート利用も含め、普段使っているAIツールをすべて選択してください。", type: "multiple",
-    options: ["Microsoft Copilot", "ChatGPT", "Gemini", "Claude", "NotebookLM", "Grok", "Copilot Studio", "その他"] },
-  { id: "q2", text: "仕事で生成AIをどのくらいの頻度で使っていますか？", type: "single",
-    options: ["ほとんど使っていない", "月に数日程度", "週に1日程度", "週に3日程度", "ほぼ毎日使っている"] },
-  { id: "q3", text: "仕事で生成AIをどのような業務に使っていますか？", type: "multiple",
-    options: ["文章作成・資料作成", "情報収集・要約", "企画・アイデア出し", "会議メモ・議事録整理",
-              "翻訳・英文作成", "プログラム・マクロ作成",
-              { value: "その他（自由入力）", withText: true, textMaxLength: 200 }] },
-  { id: "q4", text: "生成AIを使うとき、どこでつまずくことが多いですか？", type: "multiple",
-    options: ["何に使えばよいか分からない", "指示文（プロンプト）の書き方が分からない",
-              "期待した回答が返ってこない", "回答が正しいか判断できない",
-              "どのAIツールを選べばよいか分からない", "情報漏えい・著作権が不安",
-              "社内ルールやガイドラインが未整備",
-              { value: "特に困っていない", exclusive: true }] },
-  { id: "q5", text: "今日の研修で知りたいことや、AIについて気になっていることがあれば教えてください。",
+  { id: "q1", text: "普段使っている生成AIツールを教えてください（プライベート含む）", type: "multiple",
+    options: ["ChatGPT", "Microsoft Copilot", "Gemini", "Claude", "NotebookLM",
+              "Grok", "Perplexity", "Genspark", "その他",
+              { value: "まだ使っていない", exclusive: true }] },
+  { id: "q2", text: "AIの使用頻度を教えてください", type: "single",
+    options: ["ほとんど使わない", "１週間に１回程度使う", "１週間に数回程度使う",
+              "１日１回程度使う", "１日数回使う", "１時間に１回以上使う"] },
+  { id: "q3", text: "AIについて学ぶ際の主な情報源は？（３つまで）", type: "multiple", maxSelect: 3,
+    options: ["会社の同僚や先輩など", "プライベートの友人・家族", "note", "X（旧Twitter）",
+              "YouTube", "HP（企業・製品サイト）", "AIsmiley", "Ledge.ai", "AINOW",
+              "Udemy", "SHIFT AI", "その他",
+              { value: "特にない", exclusive: true }] },
+  { id: "q4", text: "あなたの会社で「AI活用が思うように進まない」理由は？", type: "multiple",
+    options: ["使える人・詳しい人が少ない", "指示文（プロンプト）の書き方が分からない",
+              "何に使えばいいか分からない", "経営・上司の理解や方針が弱い",
+              "ルール・セキュリティが未整備", "効果が見えず続かない／定着しない",
+              "忙しくて手が回らない",
+              { value: "特に問題なく進んでいる", exclusive: true }] },
+  { id: "q5", text: "この講座を終えたとき「これができるようになっていたい」ことを教えてください。",
     type: "text", required: false, placeholder: "自由にご記入ください（任意）", maxLength: 500 }
 ];
 
@@ -313,6 +317,10 @@ app.post('/api/sessions/:id/responses', (req, res) => {
           if (!validOptions.includes(a)) {
             return res.status(400).json({ error: `質問 ${q.id} の回答「${a}」が無効です` });
           }
+        }
+        // Max selection limit (per-question)
+        if (q.maxSelect && answer.length > q.maxSelect) {
+          return res.status(400).json({ error: `質問 ${q.id} は${q.maxSelect}つまで選択してください` });
         }
         // Exclusive options check (per-question)
         const exclusives = exclusiveValues(q);
